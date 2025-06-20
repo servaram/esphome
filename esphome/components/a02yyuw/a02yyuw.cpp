@@ -8,6 +8,8 @@ namespace esphome {
 namespace a02yyuw {
 
 static const char *const TAG = "a02yyuw.sensor";
+static const int MAX_DISTANCE = 4500;
+static int last_good = MAX_DISTANCE;
 
 void A02yyuwComponent::loop() {
   uint8_t data;
@@ -25,19 +27,23 @@ void A02yyuwComponent::check_buffer_() {
   uint8_t checksum = this->buffer_[0] + this->buffer_[1] + this->buffer_[2];
   if (this->buffer_[3] == checksum) {
     float distance = (this->buffer_[1] << 8) + this->buffer_[2];
-    if (distance > 30) {
+    if (distance > 0) {
       ESP_LOGV(TAG, "Distance from sensor: %f mm", distance);
       this->publish_state(distance);
+      last_good = distance;
     } else {
-      ESP_LOGW(TAG, "Invalid data read from sensor: %s", format_hex_pretty(this->buffer_).c_str());
+      float zero_distance = MAX_DISTANCE;
+      this->publish_state(zero_distance);
     }
   } else {
-    ESP_LOGW(TAG, "checksum failed: %02x != %02x", checksum, this->buffer_[3]);
+    ESP_LOGV(TAG, "checksum failed: %02x != %02x", checksum, this->buffer_[3]);
   }
   this->buffer_.clear();
 }
 
-void A02yyuwComponent::dump_config() { LOG_SENSOR("", "A02yyuw Sensor", this); }
+void A02yyuwComponent::dump_config() { 
+  LOG_SENSOR("", "A02yyuw Sensor", this); 
+}
 
 }  // namespace a02yyuw
 }  // namespace esphome
